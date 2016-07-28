@@ -55,11 +55,14 @@ def docker_list_repo(host, repo_name):
 
 def docker_remove_repo(host, repo_name):
 
+    if (not host):
+        host = DOCKER_REGISTRY_DEFAULT_HOST
+
     if (not repo_name):
         return
 
     command = "ssh " + get_username() + "@" + host \
-        + "sum rm -rf " + DOCKER_REGISTRY_DIR + "/" + repo_name
+        + " sudo rm -rfv " + DOCKER_REGISTRY_DIR + "/" + repo_name
 
     return run_command(command)
 
@@ -126,10 +129,22 @@ if __name__ == '__main__':
     parser.add_argument(
         "--docker-list-repo", 
          help = """[ACTION] lists entries in a docker repo, kept in a docker 
-                registry. e.g. '$ python docker-util.py --list-repository --host 
+                registry. e.g. '$ python docker-util.py --docker-list-repo --host 
                 192.168.8.19 --pattern \"kolla\"' lists all entries in a 
                 repository with name 'kolla', kept in a private registry 
                 located on host 192.168.8.19.""",
+                action = "store_true")
+
+    parser.add_argument(
+        "--docker-remove-repo", 
+         help = """[ACTION] removes an entry in a docker 
+                registry. e.g. '$ python docker-util.py --docker-remove-repo 
+                --host 192.168.8.19 --pattern \"openstack-kolla/apt-cacher-ng\"' 
+                removes the docker image 'apt-cache-ng' in a repo named 
+                'openstack-kolla'. the whole 'openstack-kolla' repo can be removed 
+                by specifying '--pattern \"openstack-kolla\"'. the '--pattern' 
+                option must be the precise name of a dir, otherwise the command 
+                won't run.""",
                 action = "store_true")
 
     parser.add_argument("--docker-stop", 
@@ -157,6 +172,10 @@ if __name__ == '__main__':
     elif (args.docker_list_repo):
 
         print(docker_list_repo(args.host, args.pattern).rstrip())
+
+    elif (args.docker_remove_repo):
+
+        print(docker_remove_repo(args.host, args.pattern).rstrip())
 
     else:
 
