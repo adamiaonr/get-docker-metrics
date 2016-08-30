@@ -1,4 +1,7 @@
+#!/usr/bin/env python
+
 import os
+import sys
 import pwd
 import subprocess as subprocess
 import argparse
@@ -51,7 +54,7 @@ def run_command(command, no_wait=False):
 
     return result
 
-def docker_list_repo(host, patterns):
+def docker_ls_repo(host, patterns):
 
     if (not host):
         host = DOCKER_REGISTRY_DEFAULT_HOST
@@ -68,7 +71,7 @@ def docker_list_repo(host, patterns):
     command = command + "\""
     return run_command(command)
 
-def docker_remove_repo(host, patterns):
+def docker_rm_repo(host, patterns):
 
     if (not host):
         host = DOCKER_REGISTRY_DEFAULT_HOST
@@ -214,6 +217,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # quit if not enough args
+    if (len(sys.argv) < 2):
+
+        sys.stderr.write("""docker-util::main(): [ERROR] no args supplied\n""") 
+        parser.print_help()
+
+        sys.exit(1)
+
     # extract the patterns
     patterns = args.pattern.split("|")
 
@@ -234,11 +245,11 @@ if __name__ == '__main__':
 
     elif (args.docker_ls_repo):
 
-        print(docker_list_repo(args.host, patterns).rstrip())
+        print(docker_ls_repo(args.host, patterns).rstrip())
 
     elif (args.docker_rm_repo):
 
-        print(docker_remove_repo(args.host, patterns).rstrip())
+        print(docker_rm_repo(args.host, patterns).rstrip())
 
     else:
 
