@@ -17,9 +17,11 @@ DOCKER_REGISTRY_DIR = "/data/registry/docker/registry/v2/repositories"
 
 DOCKER_CONTAINER_STOP = "stop"
 DOCKER_CONTAINER_REMOVE = "rm"
+DOCKER_CONTAINER_REMOVE_IMAGE = "rmi"
 DOCKER_CONTAINER_RUN = "run"
 DOCKER_CONTAINER_ACTIONS = [ DOCKER_CONTAINER_STOP, \
                             DOCKER_CONTAINER_REMOVE, \
+                            DOCKER_CONTAINER_REMOVE_IMAGE, \
                             DOCKER_CONTAINER_RUN ]
 
 DOCKER_IMAGE_REMOVE = "rmi"
@@ -100,7 +102,16 @@ def docker_container_action(action, patterns):
         command = command + " | awk '{print $1}'" \
             + " | xargs --no-run-if-empty docker " + action
 
-    if (action == DOCKER_CONTAINER_RUN):
+    elif (action == DOCKER_CONTAINER_REMOVE_IMAGE):
+        command = "docker images "
+
+        for pattern in patterns:
+            command = command + " | grep " + pattern
+
+        command = command + " | awk '{print $1\":\"$2}'" \
+            + " | xargs --no-run-if-empty docker " + action
+
+    elif (action == DOCKER_CONTAINER_RUN):
         command = "docker images"
 
         for pattern in patterns:
@@ -168,7 +179,7 @@ if __name__ == '__main__':
                 registry. e.g. '$ python docker-util.py --docker-ls-repo 
                 --host 192.168.8.19 --pattern \"kolla\"' lists all entries in a 
                 repository with name 'kolla', kept in a private registry 
-                located on host 192.168.8.19.""",
+                located on host 192.168.8.19.\n""",
                 action = "store_true")
 
     parser.add_argument(
@@ -180,21 +191,28 @@ if __name__ == '__main__':
                 'openstack-kolla'. the whole 'openstack-kolla' repo can be 
                 removed by specifying '--pattern \"openstack-kolla\"'. the 
                 '--pattern' option must be the precise name of a dir, otherwise 
-                the command won't run.""",
+                the command won't run.\n""",
                 action = "store_true")
 
     parser.add_argument("--docker-stop", 
          help = """[ACTION] stop one (or more) docker container(s). e.g. 
                 '$ python docker-util.py --docker-stop --pattern 
                 \"kolla\"' stops all docker containers whose 'NAME' includes 
-                the word 'kolla'.""",
+                the word 'kolla'.\n""",
                 action = "store_true")
 
     parser.add_argument("--docker-rm", 
          help = """[ACTION] remove one (or more) docker container(s). e.g. 
                 '$ python docker-util.py --docker-rm --pattern 
                 \"kolla\"' removes all docker containers whose 'NAME' includes 
-                the word 'kolla'.""",
+                the word 'kolla'.\n""",
+                action = "store_true")
+
+    parser.add_argument("--docker-rmi", 
+         help = """[ACTION] remove one (or more) local docker images. e.g. 
+                '$ python docker-util.py --docker-rmi --pattern 
+                \"kolla\"' removes all local docker images whose 'NAME' includes 
+                the word 'kolla'.\n""",
                 action = "store_true")
 
     parser.add_argument("--docker-run", 
@@ -202,27 +220,25 @@ if __name__ == '__main__':
                 name of an image. e.g. '$ python docker-util.py 
                 --docker-run --pattern \"mitaka|swift-base\"' fetches 
                 the id of the docker image w/ the terms 'mitaka' and 'swift-base' 
-                in its name. if more than 1 id is fetched, the command doesn't run.""",
+                in its name. if more than 1 id is fetched, the command doesn't run.\n""",
                 action = "store_true")
 
     parser.add_argument("--pattern", 
          help = """[ARG] pattern(s) to apply to the command.multiple patterns 
                 can be specified if separated with '|'. e.g. 
                 '--pattern \"mitaka|swift-base\"' specifies 2 patterns: 
-                'mitaka' and 'swift-base'. meaning depends on the command.""")
+                'mitaka' and 'swift-base'. meaning depends on the command.\n""")
 
     parser.add_argument("--host", 
          help = """[ARG] host to apply to the command. applicability depends on 
-                the command. if not applicable, option is ignored.""")
+                the command. if not applicable, option is ignored.\n""")
 
     args = parser.parse_args()
 
     # quit if not enough args
     if (len(sys.argv) < 2):
-
         sys.stderr.write("""docker-util::main(): [ERROR] no args supplied\n""") 
         parser.print_help()
-
         sys.exit(1)
 
     # extract the patterns
@@ -230,29 +246,26 @@ if __name__ == '__main__':
 
     # get the action
     if (args.docker_stop):
-
         docker_container_action(DOCKER_CONTAINER_STOP, patterns)
 
     elif (args.docker_rm):
-
         print(docker_container_action(DOCKER_CONTAINER_REMOVE, patterns).rstrip())
 
-    elif (args.docker_run):
+    elif (args.docker_rmi):
+        print(docker_container_action(DOCKER_CONTAINER_REMOVE_IMAGE, patterns).rstrip())
 
+    elif (args.docker_run):
         result = docker_container_action(DOCKER_CONTAINER_RUN, patterns)
         if (result):
             print result.rstrip()
 
     elif (args.docker_ls_repo):
-
         print(docker_ls_repo(args.host, patterns).rstrip())
 
     elif (args.docker_rm_repo):
-
         print(docker_rm_repo(args.host, patterns).rstrip())
 
     else:
-
         sys.stderr.write("""docker-util::main(): [ERROR] not a valid docker 
             action\n""") 
         parser.print_help()
